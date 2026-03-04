@@ -1,0 +1,137 @@
+---
+title: 'Partial Update Book'
+api: 'PATCH /books/{isbn}'
+---
+
+Partially update an existing book by ISBN. Unlike the PUT endpoint, this allows you to update only specific fields without providing the entire book object.
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="isbn" type="string" required>
+  The ISBN of the book to update.
+</ParamField>
+
+## Request Body
+
+All fields are optional. Only include the fields you want to update.
+
+<ParamField body="title" type="string">
+  The title of the book.
+</ParamField>
+
+<ParamField body="author" type="object">
+  The author information for the book.
+  
+  <ParamField body="author.id" type="integer">
+    The unique identifier of the author.
+  </ParamField>
+  
+  <ParamField body="author.name" type="string">
+    The name of the author.
+  </ParamField>
+  
+  <ParamField body="author.age" type="integer">
+    The age of the author.
+  </ParamField>
+</ParamField>
+
+<ParamField body="stock" type="integer">
+  The number of copies available in stock.
+</ParamField>
+
+<ParamField body="coverImage" type="string">
+  URL or path to the book's cover image.
+</ParamField>
+
+## Response
+
+<ResponseField name="isbn" type="string">
+  The ISBN of the book.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  The title of the book.
+</ResponseField>
+
+<ResponseField name="author" type="object">
+  The author information.
+  
+  <ResponseField name="author.id" type="integer">
+    The unique identifier of the author.
+  </ResponseField>
+  
+  <ResponseField name="author.name" type="string">
+    The name of the author.
+  </ResponseField>
+  
+  <ResponseField name="author.age" type="integer">
+    The age of the author.
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="stock" type="integer">
+  The number of copies available in stock.
+</ResponseField>
+
+<ResponseField name="coverImage" type="string">
+  URL or path to the book's cover image. Only included if set.
+</ResponseField>
+
+## Status Codes
+
+- **200 OK**: Book was successfully updated
+- **404 Not Found**: Book with the specified ISBN does not exist
+- **401 Unauthorized**: Authentication credentials are missing or invalid
+
+## Example Request
+
+Update only the stock quantity:
+
+```bash
+curl -X PATCH https://api.example.com/books/978-0-7475-3269-9 \
+  -u username:password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "stock": 20
+  }'
+```
+
+Update multiple fields:
+
+```bash
+curl -X PATCH https://api.example.com/books/978-0-7475-3269-9 \
+  -u username:password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Harry Potter and the Philosopher Stone (Updated Edition)",
+    "stock": 25,
+    "coverImage": "https://example.com/covers/hp1-updated.jpg"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "isbn": "978-0-7475-3269-9",
+  "title": "Harry Potter and the Philosopher Stone (Updated Edition)",
+  "author": {
+    "id": 1,
+    "name": "J.K. Rowling",
+    "age": 58
+  },
+  "stock": 25,
+  "coverImage": "https://example.com/covers/hp1-updated.jpg"
+}
+```
+
+## Notes
+
+- **PUT vs PATCH**: Use PUT when you want to replace the entire book resource (all fields required). Use PATCH when you want to update only specific fields.
+- The book must exist before you can perform a partial update. If it doesn't exist, you'll receive a 404 error.
+- Only the fields included in the request body will be updated. All other fields will retain their existing values.
+- To update the author, you can provide partial author information as well.

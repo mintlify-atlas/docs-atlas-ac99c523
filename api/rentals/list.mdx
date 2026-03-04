@@ -1,0 +1,205 @@
+---
+title: "List Rentals"
+api: "GET /rentals"
+description: "Retrieve a paginated list of all book rentals in the system."
+---
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number (0-indexed)
+</ParamField>
+
+<ParamField query="size" type="integer" default="20">
+  Number of rentals per page
+</ParamField>
+
+<ParamField query="sort" type="string" optional>
+  Sort field and direction (e.g., `loanDate,desc` or `id,asc`)
+</ParamField>
+
+## Response
+
+<ResponseField name="content" type="array">
+  Array of rental objects
+  <ResponseField name="id" type="integer">
+    Unique identifier for the rental
+  </ResponseField>
+  <ResponseField name="user" type="object">
+    User who rented the book
+    <ResponseField name="id" type="integer">
+      User ID
+    </ResponseField>
+    <ResponseField name="firstname" type="string">
+      User's first name
+    </ResponseField>
+    <ResponseField name="lastname" type="string">
+      User's last name
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      User's email address
+    </ResponseField>
+    <ResponseField name="displayPicture" type="string" optional>
+      URL to user's display picture
+    </ResponseField>
+  </ResponseField>
+  <ResponseField name="book" type="object">
+    Book being rented
+    <ResponseField name="isbn" type="string">
+      Book ISBN
+    </ResponseField>
+    <ResponseField name="title" type="string">
+      Book title
+    </ResponseField>
+    <ResponseField name="stock" type="integer">
+      Current stock count
+    </ResponseField>
+    <ResponseField name="coverImage" type="string" optional>
+      URL to book cover image
+    </ResponseField>
+    <ResponseField name="author" type="object">
+      Book author details
+      <ResponseField name="id" type="integer">
+        Author ID
+      </ResponseField>
+      <ResponseField name="name" type="string">
+        Author name
+      </ResponseField>
+      <ResponseField name="age" type="integer">
+        Author age
+      </ResponseField>
+    </ResponseField>
+  </ResponseField>
+  <ResponseField name="loanDate" type="string">
+    ISO 8601 timestamp when the book was rented
+  </ResponseField>
+  <ResponseField name="returnDate" type="string">
+    ISO 8601 timestamp when the book is due
+  </ResponseField>
+  <ResponseField name="returned" type="boolean">
+    Whether the book has been returned
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="pageable" type="object">
+  Pagination metadata
+  <ResponseField name="pageNumber" type="integer">
+    Current page number (0-indexed)
+  </ResponseField>
+  <ResponseField name="pageSize" type="integer">
+    Number of items per page
+  </ResponseField>
+  <ResponseField name="sort" type="object">
+    Sort information
+  </ResponseField>
+  <ResponseField name="offset" type="integer">
+    Offset of the first item
+  </ResponseField>
+  <ResponseField name="paged" type="boolean">
+    Whether the results are paged
+  </ResponseField>
+  <ResponseField name="unpaged" type="boolean">
+    Whether the results are unpaged
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="totalElements" type="integer">
+  Total number of rentals across all pages
+</ResponseField>
+
+<ResponseField name="totalPages" type="integer">
+  Total number of pages
+</ResponseField>
+
+<ResponseField name="last" type="boolean">
+  Whether this is the last page
+</ResponseField>
+
+<ResponseField name="first" type="boolean">
+  Whether this is the first page
+</ResponseField>
+
+<ResponseField name="size" type="integer">
+  Number of items per page
+</ResponseField>
+
+<ResponseField name="number" type="integer">
+  Current page number (0-indexed)
+</ResponseField>
+
+<ResponseField name="numberOfElements" type="integer">
+  Number of items in the current page
+</ResponseField>
+
+<ResponseField name="empty" type="boolean">
+  Whether the current page is empty
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET "https://api.example.com/rentals?page=0&size=10&sort=loanDate,desc" \
+  -u "username:password" \
+  -H "Content-Type: application/json"
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json Response
+{
+  "content": [
+    {
+      "id": 123,
+      "user": {
+        "id": 42,
+        "firstname": "John",
+        "lastname": "Doe",
+        "email": "john.doe@example.com",
+        "displayPicture": "https://example.com/photos/john.jpg"
+      },
+      "book": {
+        "isbn": "978-0-12345-678-9",
+        "title": "The Great Adventure",
+        "stock": 4,
+        "coverImage": "https://example.com/covers/great-adventure.jpg",
+        "author": {
+          "id": 7,
+          "name": "Jane Smith",
+          "age": 45
+        }
+      },
+      "loanDate": "2026-03-04T10:30:00Z",
+      "returnDate": "2026-03-18T10:30:00Z",
+      "returned": false
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "sort": {
+      "sorted": true,
+      "unsorted": false,
+      "empty": false
+    },
+    "offset": 0,
+    "paged": true,
+    "unpaged": false
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "last": true,
+  "first": true,
+  "size": 10,
+  "number": 0,
+  "numberOfElements": 1,
+  "empty": false
+}
+```
+
+</ResponseExample>

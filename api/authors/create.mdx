@@ -1,0 +1,66 @@
+---
+title: Create Author
+api: POST /authors
+---
+
+Creates a new author in the library system.
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  The name of the author
+</ParamField>
+
+<ParamField body="age" type="integer">
+  The age of the author
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="long">
+  The unique identifier of the created author
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the author
+</ResponseField>
+
+<ResponseField name="age" type="integer">
+  The age of the author
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="201" type="Created">
+  Author successfully created
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Authentication credentials are missing or invalid
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST http://localhost:8080/authors \
+  -u username:password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "J.K. Rowling",
+    "age": 58
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "id": 1,
+  "name": "J.K. Rowling",
+  "age": 58
+}
+```

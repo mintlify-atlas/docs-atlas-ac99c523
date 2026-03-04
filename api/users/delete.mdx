@@ -1,0 +1,82 @@
+---
+title: "Delete User"
+api: "DELETE /users/{id}"
+description: "Delete a user from the library system"
+---
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the user to delete
+</ParamField>
+
+## Response
+
+This endpoint returns no content on successful deletion.
+
+<Warning>
+  Deleting a user is a permanent operation and cannot be undone. Ensure you have proper authorization before deleting user accounts.
+</Warning>
+
+## Status Codes
+
+<ResponseField name="204" type="No Content">
+  User successfully deleted. No response body is returned.
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Missing or invalid authentication credentials
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  User with the specified ID does not exist (note: the controller implementation returns 204 even if the user doesn't exist)
+</ResponseField>
+
+<Note>
+  The current implementation returns 204 No Content regardless of whether the user exists. This is an idempotent operation - deleting a non-existent user is treated the same as successfully deleting an existing user.
+</Note>
+
+<RequestExample>
+
+```bash cURL
+curl -X DELETE https://api.library.com/users/1 \
+  -u username:password
+```
+
+```bash Check Before Delete
+# It's good practice to verify the user exists before deleting
+curl -X GET https://api.library.com/users/1 \
+  -u username:password
+
+# Then delete if confirmed
+curl -X DELETE https://api.library.com/users/1 \
+  -u username:password
+```
+
+```text Response
+HTTP/1.1 204 No Content
+Date: Wed, 04 Mar 2026 10:30:00 GMT
+```
+
+</RequestExample>
+
+## Considerations
+
+### Related Data
+
+Before deleting a user, consider the following:
+
+- **Borrowed Books**: If the user has active book rentals (borrowed books not yet returned), you may want to handle these first
+- **Historical Records**: Consider whether you need to preserve rental history for audit purposes
+- **Cascade Behavior**: Check your database configuration for how related rental records are handled (cascade delete, set null, etc.)
+
+### Best Practices
+
+1. **Verify User Exists**: Check that the user exists before attempting deletion
+2. **Check for Active Rentals**: Query the user's borrowed books to ensure no active rentals
+3. **Soft Delete Alternative**: Consider implementing a soft delete (marking users as inactive) instead of hard deletion for better data integrity and audit trails
+4. **Authorization**: Ensure proper role-based access control is in place for delete operations

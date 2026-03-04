@@ -1,0 +1,72 @@
+---
+title: Get Author
+api: GET /authors/{id}
+---
+
+Retrieves a specific author by their ID.
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the author to retrieve
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="long">
+  The unique identifier of the author
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the author
+</ResponseField>
+
+<ResponseField name="age" type="integer">
+  The age of the author
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="200" type="OK">
+  Author successfully retrieved
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  Author with the specified ID does not exist
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Authentication credentials are missing or invalid
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET http://localhost:8080/authors/1 \
+  -u username:password
+```
+
+## Example Response
+
+```json
+{
+  "id": 1,
+  "name": "J.K. Rowling",
+  "age": 58
+}
+```
+
+## Error Response
+
+When the author is not found:
+
+```json
+{
+  "status": 404,
+  "error": "Not Found"
+}
+```

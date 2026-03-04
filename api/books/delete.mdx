@@ -1,0 +1,43 @@
+---
+title: 'Delete Book'
+api: 'DELETE /books/{isbn}'
+---
+
+Delete a book from the library by its ISBN.
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="isbn" type="string" required>
+  The ISBN of the book to delete.
+</ParamField>
+
+## Response
+
+This endpoint returns an empty response body on success.
+
+## Status Codes
+
+- **204 No Content**: Book was successfully deleted (or didn't exist)
+- **401 Unauthorized**: Authentication credentials are missing or invalid
+
+## Example Request
+
+```bash
+curl -X DELETE https://api.example.com/books/978-0-7475-3269-9 \
+  -u username:password
+```
+
+## Example Response
+
+The response body is empty with a 204 status code.
+
+## Notes
+
+- This endpoint returns 204 No Content regardless of whether the book existed or not.
+- The deletion is permanent and cannot be undone.
+- This operation does not delete the associated author, only the book record.
+- Any associated rental records will be removed due to the orphan removal configuration (cascade delete).

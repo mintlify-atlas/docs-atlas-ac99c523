@@ -1,0 +1,193 @@
+---
+title: 'List Books'
+api: 'GET /books'
+---
+
+Retrieve a paginated list of all books in the library.
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  The page number to retrieve (zero-indexed).
+</ParamField>
+
+<ParamField query="size" type="integer" default="20">
+  The number of items per page.
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Sort criteria in the format: `property,direction`. For example: `title,asc` or `stock,desc`. Multiple sort parameters can be provided.
+</ParamField>
+
+## Response
+
+The response is a paginated object containing an array of books and pagination metadata.
+
+<ResponseField name="content" type="array">
+  Array of book objects.
+  
+  <ResponseField name="isbn" type="string">
+    The ISBN of the book.
+  </ResponseField>
+  
+  <ResponseField name="title" type="string">
+    The title of the book.
+  </ResponseField>
+  
+  <ResponseField name="author" type="object">
+    The author information.
+    
+    <ResponseField name="author.id" type="integer">
+      The unique identifier of the author.
+    </ResponseField>
+    
+    <ResponseField name="author.name" type="string">
+      The name of the author.
+    </ResponseField>
+    
+    <ResponseField name="author.age" type="integer">
+      The age of the author.
+    </ResponseField>
+  </ResponseField>
+  
+  <ResponseField name="stock" type="integer">
+    The number of copies available in stock.
+  </ResponseField>
+  
+  <ResponseField name="coverImage" type="string">
+    URL or path to the book's cover image. Only included if set.
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="pageable" type="object">
+  Pagination information about the current request.
+  
+  <ResponseField name="pageNumber" type="integer">
+    The current page number (zero-indexed).
+  </ResponseField>
+  
+  <ResponseField name="pageSize" type="integer">
+    The number of items per page.
+  </ResponseField>
+  
+  <ResponseField name="sort" type="object">
+    Sort information.
+  </ResponseField>
+  
+  <ResponseField name="offset" type="integer">
+    The offset of the first item in the current page.
+  </ResponseField>
+  
+  <ResponseField name="paged" type="boolean">
+    Whether the response is paginated.
+  </ResponseField>
+  
+  <ResponseField name="unpaged" type="boolean">
+    Whether the response is unpaginated.
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="totalPages" type="integer">
+  The total number of pages available.
+</ResponseField>
+
+<ResponseField name="totalElements" type="integer">
+  The total number of books across all pages.
+</ResponseField>
+
+<ResponseField name="last" type="boolean">
+  Whether this is the last page.
+</ResponseField>
+
+<ResponseField name="first" type="boolean">
+  Whether this is the first page.
+</ResponseField>
+
+<ResponseField name="size" type="integer">
+  The size of the current page.
+</ResponseField>
+
+<ResponseField name="number" type="integer">
+  The current page number (zero-indexed).
+</ResponseField>
+
+<ResponseField name="numberOfElements" type="integer">
+  The number of elements in the current page.
+</ResponseField>
+
+<ResponseField name="empty" type="boolean">
+  Whether the current page is empty.
+</ResponseField>
+
+## Status Codes
+
+- **200 OK**: Successfully retrieved the list of books
+- **401 Unauthorized**: Authentication credentials are missing or invalid
+
+## Example Request
+
+```bash
+curl -X GET "https://api.example.com/books?page=0&size=10&sort=title,asc" \
+  -u username:password
+```
+
+## Example Response
+
+```json
+{
+  "content": [
+    {
+      "isbn": "978-0-7475-3269-9",
+      "title": "Harry Potter and the Philosopher Stone",
+      "author": {
+        "id": 1,
+        "name": "J.K. Rowling",
+        "age": 58
+      },
+      "stock": 15,
+      "coverImage": "https://example.com/covers/hp1.jpg"
+    },
+    {
+      "isbn": "978-0-4510-5271-5",
+      "title": "The Great Gatsby",
+      "author": {
+        "id": 2,
+        "name": "F. Scott Fitzgerald",
+        "age": 44
+      },
+      "stock": 8
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "sort": {
+      "sorted": true,
+      "unsorted": false,
+      "empty": false
+    },
+    "offset": 0,
+    "paged": true,
+    "unpaged": false
+  },
+  "totalPages": 5,
+  "totalElements": 42,
+  "last": false,
+  "first": true,
+  "size": 10,
+  "number": 0,
+  "numberOfElements": 10,
+  "empty": false
+}
+```
+
+## Notes
+
+- The default page size is 20 items if not specified.
+- Pages are zero-indexed, so the first page is `page=0`.
+- You can sort by any book property such as `isbn`, `title`, or `stock`.
+- Multiple sort parameters can be provided to sort by multiple fields.

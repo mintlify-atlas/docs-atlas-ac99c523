@@ -1,0 +1,165 @@
+---
+title: "Update User"
+api: "PUT /users/{id}"
+description: "Fully update an existing user (replaces all fields)"
+---
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the user to update
+</ParamField>
+
+## Request Body
+
+This endpoint performs a full update, replacing all user fields. All fields should be provided.
+
+<ParamField body="firstname" type="string">
+  The user's first name
+</ParamField>
+
+<ParamField body="lastname" type="string">
+  The user's last name
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  The user's email address. Must be unique.
+</ParamField>
+
+<ParamField body="password" type="string">
+  The user's password. Will be encrypted before storage.
+</ParamField>
+
+<ParamField body="googleId" type="string">
+  Optional Google OAuth ID for users signing in with Google
+</ParamField>
+
+<ParamField body="displayPicture" type="string">
+  URL to the user's display picture
+</ParamField>
+
+<Note>
+  This is a full update (PUT) operation. To perform a partial update where only specified fields are modified, use the PATCH endpoint instead.
+</Note>
+
+## Response
+
+<ResponseField name="id" type="long">
+  Unique identifier for the user
+</ResponseField>
+
+<ResponseField name="firstname" type="string">
+  The user's first name
+</ResponseField>
+
+<ResponseField name="lastname" type="string">
+  The user's last name
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  The user's email address
+</ResponseField>
+
+<ResponseField name="borrowedBooks" type="array">
+  Set of rental records for books borrowed by this user
+  <Expandable title="RentalDto properties">
+    <ResponseField name="id" type="long">
+      Unique identifier for the rental
+    </ResponseField>
+    <ResponseField name="user" type="object">
+      User entity reference
+    </ResponseField>
+    <ResponseField name="book" type="object">
+      Book entity reference
+    </ResponseField>
+    <ResponseField name="loanDate" type="string">
+      ISO 8601 datetime when the book was borrowed
+    </ResponseField>
+    <ResponseField name="returnDate" type="string">
+      ISO 8601 datetime when the book should be returned
+    </ResponseField>
+    <ResponseField name="returned" type="boolean">
+      Whether the book has been returned
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="googleId" type="string">
+  Google OAuth ID (only included if set)
+</ResponseField>
+
+<ResponseField name="displayPicture" type="string">
+  URL to the user's display picture (only included if set)
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="200" type="OK">
+  User successfully updated
+</ResponseField>
+
+<ResponseField name="400" type="Bad Request">
+  Invalid request body or missing required fields
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Missing or invalid authentication credentials
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  User with the specified ID does not exist
+</ResponseField>
+
+<ResponseField name="409" type="Conflict">
+  Email address already exists for another user
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl -X PUT https://api.library.com/users/1 \
+  -u username:password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstname": "John",
+    "lastname": "Doe",
+    "email": "john.doe.updated@example.com",
+    "displayPicture": "https://example.com/pictures/johndoe-new.jpg"
+  }'
+```
+
+```bash PATCH Alternative
+# For partial updates, use PATCH instead
+curl -X PATCH https://api.library.com/users/1 \
+  -u username:password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "displayPicture": "https://example.com/pictures/johndoe-new.jpg"
+  }'
+```
+
+```json Response
+{
+  "id": 1,
+  "firstname": "John",
+  "lastname": "Doe",
+  "email": "john.doe.updated@example.com",
+  "borrowedBooks": [],
+  "displayPicture": "https://example.com/pictures/johndoe-new.jpg"
+}
+```
+
+```json 404 Response
+{
+  "timestamp": "2026-03-04T10:30:00.000+00:00",
+  "status": 404,
+  "error": "Not Found",
+  "path": "/users/999"
+}
+```
+
+</RequestExample>

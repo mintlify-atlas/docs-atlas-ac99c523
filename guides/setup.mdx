@@ -1,0 +1,240 @@
+---
+title: 'Setup Guide'
+description: 'Get started with the Library API by setting up your development environment'
+icon: 'rocket'
+---
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed on your system:
+
+<CardGroup cols={2}>
+  <Card title="Java 17" icon="java">
+    The project requires Java 17 or higher
+  </Card>
+  <Card title="Maven" icon="box">
+    Apache Maven for dependency management and building
+  </Card>
+  <Card title="PostgreSQL" icon="database">
+    PostgreSQL database server (version 12 or higher)
+  </Card>
+  <Card title="Git" icon="git">
+    Git for cloning the repository
+  </Card>
+</CardGroup>
+
+### Verify Java Installation
+
+```bash
+java -version
+```
+
+You should see output indicating Java 17 or higher:
+
+```
+openjdk version "17.0.x"
+```
+
+### Verify Maven Installation
+
+```bash
+mvn -version
+```
+
+## Clone the Repository
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the Library API repository to your local machine:
+
+    ```bash
+    git clone <repository-url>
+    cd libraryapi
+    ```
+  </Step>
+
+  <Step title="Verify project structure">
+    Ensure the project structure is correct:
+
+    ```bash
+    ls -la
+    ```
+
+    You should see:
+    - `pom.xml` - Maven configuration file
+    - `src/` - Source code directory
+    - `mvnw` and `mvnw.cmd` - Maven wrapper scripts
+  </Step>
+</Steps>
+
+## Build the Project
+
+<Steps>
+  <Step title="Install dependencies">
+    Use Maven to download all required dependencies:
+
+    ```bash
+    mvn clean install
+    ```
+
+    <Note>
+      The first build may take several minutes as Maven downloads all dependencies.
+    </Note>
+  </Step>
+
+  <Step title="Compile the application">
+    Compile the source code:
+
+    ```bash
+    mvn compile
+    ```
+  </Step>
+
+  <Step title="Run tests (optional)">
+    Verify everything is working by running tests:
+
+    ```bash
+    mvn test
+    ```
+  </Step>
+</Steps>
+
+## Configure the Database
+
+Before running the application, you need to configure the PostgreSQL database connection.
+
+<Warning>
+  Make sure PostgreSQL is running and you have created a database named `library`. See the [Database Configuration](/guides/database-configuration) guide for detailed instructions.
+</Warning>
+
+Edit `src/main/resources/application.properties`:
+
+```properties
+spring.application.name=libraryapi
+spring.datasource.url=jdbc:postgresql://localhost:5432/library
+spring.datasource.username=postgres
+spring.datasource.password=your_password
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.hibernate.ddl-auto=update
+```
+
+## Run the Application
+
+<Tabs>
+  <Tab title="Using Maven">
+    Run the application using the Spring Boot Maven plugin:
+
+    ```bash
+    mvn spring-boot:run
+    ```
+  </Tab>
+
+  <Tab title="Using Maven Wrapper">
+    If you prefer to use the Maven wrapper (no Maven installation required):
+
+    **Linux/macOS:**
+    ```bash
+    ./mvnw spring-boot:run
+    ```
+
+    **Windows:**
+    ```bash
+    mvnw.cmd spring-boot:run
+    ```
+  </Tab>
+
+  <Tab title="Using JAR file">
+    Build a JAR file and run it:
+
+    ```bash
+    mvn package
+    java -jar target/libraryapi-0.0.1-SNAPSHOT.jar
+    ```
+  </Tab>
+</Tabs>
+
+## Verify Installation
+
+Once the application starts, you should see output indicating the server is running:
+
+```
+Started LibraryapiApplication in X.XXX seconds
+```
+
+<Steps>
+  <Step title="Check application health">
+    The application runs on port 8080 by default. Verify it's running:
+
+    ```bash
+    curl http://localhost:8080/
+    ```
+  </Step>
+
+  <Step title="Test authentication">
+    Try accessing a protected endpoint to verify security is working:
+
+    ```bash
+    curl http://localhost:8080/api/books
+    ```
+
+    You should receive a 401 Unauthorized response, indicating security is properly configured.
+  </Step>
+</Steps>
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Port 8080 already in use">
+    If port 8080 is already in use, you can change it by adding this to `application.properties`:
+
+    ```properties
+    server.port=8081
+    ```
+  </Accordion>
+
+  <Accordion title="Database connection failed">
+    Ensure:
+    - PostgreSQL is running
+    - The database `library` exists
+    - Username and password are correct
+    - PostgreSQL is accepting connections on port 5432
+
+    See the [Database Configuration](/guides/database-configuration) guide for more details.
+  </Accordion>
+
+  <Accordion title="Maven build fails">
+    Try clearing the Maven cache and rebuilding:
+
+    ```bash
+    mvn clean
+    rm -rf ~/.m2/repository
+    mvn install
+    ```
+  </Accordion>
+
+  <Accordion title="Java version mismatch">
+    The project requires Java 17. If you have multiple Java versions installed, set `JAVA_HOME`:
+
+    ```bash
+    export JAVA_HOME=/path/to/java17
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Configuration" icon="database" href="/guides/database-configuration">
+    Learn how to configure PostgreSQL and JPA settings
+  </Card>
+  <Card title="Security Setup" icon="shield" href="/guides/security">
+    Configure authentication and protect your endpoints
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth/register">
+    Explore the available API endpoints
+  </Card>
+  <Card title="Quick Start" icon="bolt" href="/quickstart">
+    Follow a quick tutorial to get started
+  </Card>
+</CardGroup>

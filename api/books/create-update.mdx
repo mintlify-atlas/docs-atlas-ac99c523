@@ -1,0 +1,131 @@
+---
+title: 'Create or Update Book'
+api: 'PUT /books/{isbn}'
+---
+
+Create a new book or update an existing book by ISBN. This endpoint performs an upsert operation - if the book exists, it will be updated; if not, it will be created.
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="isbn" type="string" required>
+  The ISBN of the book. This is used as the unique identifier for the book.
+</ParamField>
+
+## Request Body
+
+<ParamField body="isbn" type="string" required>
+  The ISBN of the book. Should match the path parameter.
+</ParamField>
+
+<ParamField body="title" type="string" required>
+  The title of the book.
+</ParamField>
+
+<ParamField body="author" type="object" required>
+  The author information for the book.
+  
+  <ParamField body="author.id" type="integer">
+    The unique identifier of the author.
+  </ParamField>
+  
+  <ParamField body="author.name" type="string" required>
+    The name of the author.
+  </ParamField>
+  
+  <ParamField body="author.age" type="integer">
+    The age of the author.
+  </ParamField>
+</ParamField>
+
+<ParamField body="stock" type="integer" required>
+  The number of copies available in stock.
+</ParamField>
+
+<ParamField body="coverImage" type="string">
+  URL or path to the book's cover image. This field is optional.
+</ParamField>
+
+## Response
+
+<ResponseField name="isbn" type="string">
+  The ISBN of the book.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  The title of the book.
+</ResponseField>
+
+<ResponseField name="author" type="object">
+  The author information.
+  
+  <ResponseField name="author.id" type="integer">
+    The unique identifier of the author.
+  </ResponseField>
+  
+  <ResponseField name="author.name" type="string">
+    The name of the author.
+  </ResponseField>
+  
+  <ResponseField name="author.age" type="integer">
+    The age of the author.
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="stock" type="integer">
+  The number of copies available in stock.
+</ResponseField>
+
+<ResponseField name="coverImage" type="string">
+  URL or path to the book's cover image. Only included if set.
+</ResponseField>
+
+## Status Codes
+
+- **200 OK**: Book was successfully updated
+- **201 Created**: Book was successfully created
+- **401 Unauthorized**: Authentication credentials are missing or invalid
+
+## Example Request
+
+```bash
+curl -X PUT https://api.example.com/books/978-0-7475-3269-9 \
+  -u username:password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "isbn": "978-0-7475-3269-9",
+    "title": "Harry Potter and the Philosopher Stone",
+    "author": {
+      "id": 1,
+      "name": "J.K. Rowling",
+      "age": 58
+    },
+    "stock": 15,
+    "coverImage": "https://example.com/covers/hp1.jpg"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "isbn": "978-0-7475-3269-9",
+  "title": "Harry Potter and the Philosopher Stone",
+  "author": {
+    "id": 1,
+    "name": "J.K. Rowling",
+    "age": 58
+  },
+  "stock": 15,
+  "coverImage": "https://example.com/covers/hp1.jpg"
+}
+```
+
+## Notes
+
+- This is a full update operation (PUT). All fields must be provided in the request body.
+- If you want to update only specific fields, use the [Partial Update](/api/books/partial-update) endpoint instead.
+- The author cascade operation means the author will be created or updated along with the book.

@@ -1,0 +1,566 @@
+---
+title: 'Security Configuration'
+description: 'Configure authentication, authorization, and endpoint protection for the Library API'
+icon: 'shield'
+---
+
+## Overview
+
+The Library API uses Spring Security to protect endpoints and manage authentication. This guide covers the security architecture, configuration, and best practices.
+
+## Security Architecture
+
+The application implements the following security features:
+
+<CardGroup cols={2}>
+  <Card title="HTTP Basic Authentication" icon="key">
+    Stateless authentication using HTTP Basic Auth headers
+  </Card>
+  <Card title="Password Encryption" icon="lock">
+    BCrypt password hashing with strength factor 12
+  </Card>
+  <Card title="Session Management" icon="clock">
+    Stateless sessions for REST API design
+  </Card>
+  <Card title="Endpoint Protection" icon="shield-halved">
+    Role-based access control for API endpoints
+  </Card>
+</CardGroup>
+
+## Spring Security Configuration
+
+The security configuration is defined in `SecurityConfig.java`:
+
+```java SecurityConfig.java
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests((requests) -> requests
+                .requestMatchers("/", "/auth/login", "/home").permitAll()
+                .requestMatchers("/auth/register").permitAll()
+                .anyRequest().authenticated())
+            .httpBasic(Customizer.withDefaults())
+            .sessionManagement(session -> 
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .logout((logout) -> logout.permitAll());
+
+        return http.build();
+    }
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+}
+```
+
+### Configuration Breakdown
+
+<Steps>
+  <Step title="Enable Web Security">
+    The `@EnableWebSecurity` annotation activates Spring Security:
+
+    ```java
+    @Configuration
+    @EnableWebSecurity
+    public class SecurityConfig {
+        // Configuration beans
+    }
+    ```
+  </Step>
+
+  <Step title="Configure HTTP Security">
+    Define which endpoints require authentication:
+
+    ```java
+    .authorizeHttpRequests((requests) -> requests
+        .requestMatchers("/", "/auth/login", "/home").permitAll()
+        .requestMatchers("/auth/register").permitAll()
+        .anyRequest().authenticated())
+    ```
+
+    - **Public endpoints**: `/`, `/auth/login`, `/home`, `/auth/register`
+    - **Protected endpoints**: All other endpoints require authentication
+  </Step>
+
+  <Step title="Enable HTTP Basic Authentication">
+    Configure stateless HTTP Basic authentication:
+
+    ```java
+    .httpBasic(Customizer.withDefaults())
+    .sessionManagement(session -> 
+        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+    ```
+
+    <Note>
+      Stateless sessions mean no session cookies are created. Each request must include authentication credentials.
+    </Note>
+  </Step>
+</Steps>
+
+## Password Encryption
+
+The application uses BCrypt for password hashing with a strength factor of 12.
+
+### BCrypt Configuration
+
+```java SecurityConfig.java
+@Bean
+public BCryptPasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder(12);
+}
+```
+
+### Understanding BCrypt Strength
+
+<ParamField path="strength" type="integer" default="12">
+  The BCrypt work factor determines computational cost:
+  - **4-10**: Fast, suitable for testing (not recommended for production)
+  - **12**: Balanced security and performance (recommended)
+  - **13-15**: Higher security, slower performance
+  - **16+**: Very secure, but significantly slower
+</ParamField>
+
+<Warning>
+  Higher strength values exponentially increase computation time. Strength 12 provides strong security with reasonable performance.
+</Warning>
+
+### Encrypting Passwords
+
+When creating or updating users, always encrypt passwords:
+
+```java UserService.java
+@Autowired
+private BCryptPasswordEncoder passwordEncoder;
+
+public UserEntity createUser(UserDto userDto) {
+    UserEntity user = new UserEntity();
+    user.setEmail(userDto.getEmail());
+    user.setFirstname(userDto.getFirstname());
+    user.setLastname(userDto.getLastname());
+    
+    // Encrypt password before saving
+    String encryptedPassword = passwordEncoder.encode(userDto.getPassword());
+    user.setPassword(encryptedPassword);
+    
+    return userRepository.save(user);
+}
+```
+
+### Validating Passwords
+
+To verify a password during authentication:
+
+```java AuthService.java
+public boolean validatePassword(String rawPassword, String encodedPassword) {
+    return passwordEncoder.matches(rawPassword, encodedPassword);
+}
+```
+
+## Authentication Setup
+
+### Authentication Provider
+
+The application uses a `DaoAuthenticationProvider` for database-backed authentication:
+
+```java SecurityConfig.java
+@Bean
+public AuthenticationProvider authenticationProvider() {
+    DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+    daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
+    daoAuthenticationProvider.setUserDetailsService(userDetailsService());
+    return daoAuthenticationProvider;
+}
+```
+
+### Authentication Manager
+
+The authentication manager coordinates authentication providers:
+
+```java SecurityConfig.java
+@Bean
+public AuthenticationManager authManager(HttpSecurity http) throws Exception {
+    return http.getSharedObject(AuthenticationManagerBuilder.class)
+            .authenticationProvider(authenticationProvider())
+            .build();
+}
+```
+
+### UserDetailsService
+
+The application uses an in-memory user store (can be replaced with database-backed implementation):
+
+```java SecurityConfig.java
+private final Map<String, UserDetails> users = new HashMap<>();
+
+@Bean
+public UserDetailsService userDetailsService() {
+    return new InMemoryUserDetailsManager(users.values());
+}
+```
+
+<Note>
+  For production, implement a custom `UserDetailsService` that loads users from the database.
+</Note>
+
+## Implementing Database-Backed Authentication
+
+Replace the in-memory user store with database authentication:
+
+<Steps>
+  <Step title="Create UserDetailsService implementation">
+    Create a custom service that loads users from the database:
+
+    ```java CustomUserDetailsService.java
+    @Service
+    public class CustomUserDetailsService implements UserDetailsService {
+
+        @Autowired
+        private UserRepository userRepository;
+
+        @Override
+        public UserDetails loadUserByUsername(String email) 
+                throws UsernameNotFoundException {
+            UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                    "User not found with email: " + email));
+
+            return User.builder()
+                .username(user.getEmail())
+                .password(user.getPassword())
+                .roles("USER")
+                .build();
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Update SecurityConfig">
+    Inject and use the custom service:
+
+    ```java SecurityConfig.java
+    @Autowired
+    private CustomUserDetailsService customUserDetailsService;
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setPasswordEncoder(passwordEncoder());
+        provider.setUserDetailsService(customUserDetailsService);
+        return provider;
+    }
+    ```
+  </Step>
+
+  <Step title="Create UserRepository method">
+    Add a method to find users by email:
+
+    ```java UserRepository.java
+    public interface UserRepository extends JpaRepository<UserEntity, Long> {
+        Optional<UserEntity> findByEmail(String email);
+    }
+    ```
+  </Step>
+</Steps>
+
+## Protecting Endpoints
+
+### Public vs Protected Endpoints
+
+Configure which endpoints are public and which require authentication:
+
+```java SecurityConfig.java
+.authorizeHttpRequests((requests) -> requests
+    // Public endpoints
+    .requestMatchers("/", "/auth/login", "/home").permitAll()
+    .requestMatchers("/auth/register").permitAll()
+    .requestMatchers("/api/public/**").permitAll()
+    
+    // Admin-only endpoints
+    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+    
+    // Authenticated endpoints
+    .requestMatchers("/api/books/**").authenticated()
+    .requestMatchers("/api/rentals/**").authenticated()
+    .requestMatchers("/api/users/**").authenticated()
+    
+    // All other requests require authentication
+    .anyRequest().authenticated())
+```
+
+### Role-Based Access Control
+
+Implement role-based authorization:
+
+```java SecurityConfig.java
+.authorizeHttpRequests((requests) -> requests
+    // Public access
+    .requestMatchers("/auth/**").permitAll()
+    
+    // User role required
+    .requestMatchers("/api/books").hasAnyRole("USER", "ADMIN")
+    .requestMatchers("/api/rentals").hasAnyRole("USER", "ADMIN")
+    
+    // Admin role required
+    .requestMatchers("/api/users/all").hasRole("ADMIN")
+    .requestMatchers("/api/books/create").hasRole("ADMIN")
+    .requestMatchers("/api/books/delete/**").hasRole("ADMIN")
+    
+    .anyRequest().authenticated())
+```
+
+### Method-Level Security
+
+Protect individual methods with annotations:
+
+<Steps>
+  <Step title="Enable method security">
+    Add `@EnableMethodSecurity` to your configuration:
+
+    ```java SecurityConfig.java
+    @Configuration
+    @EnableWebSecurity
+    @EnableMethodSecurity
+    public class SecurityConfig {
+        // Configuration
+    }
+    ```
+  </Step>
+
+  <Step title="Use security annotations">
+    Protect methods with annotations:
+
+    ```java BookController.java
+    @RestController
+    @RequestMapping("/api/books")
+    public class BookController {
+
+        @GetMapping
+        @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+        public List<BookDto> getAllBooks() {
+            // Method implementation
+        }
+
+        @PostMapping
+        @PreAuthorize("hasRole('ADMIN')")
+        public BookDto createBook(@RequestBody BookDto bookDto) {
+            // Method implementation
+        }
+
+        @DeleteMapping("/{isbn}")
+        @PreAuthorize("hasRole('ADMIN')")
+        public void deleteBook(@PathVariable String isbn) {
+            // Method implementation
+        }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Making Authenticated Requests
+
+### Using cURL
+
+```bash
+# Basic authentication with username and password
+curl -u username:password http://localhost:8080/api/books
+
+# With explicit Basic Auth header
+curl -H "Authorization: Basic dXNlcm5hbWU6cGFzc3dvcmQ=" \
+     http://localhost:8080/api/books
+```
+
+### Using JavaScript/Fetch
+
+```javascript
+const username = 'user@example.com';
+const password = 'password123';
+const credentials = btoa(`${username}:${password}`);
+
+fetch('http://localhost:8080/api/books', {
+  method: 'GET',
+  headers: {
+    'Authorization': `Basic ${credentials}`,
+    'Content-Type': 'application/json'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+### Using Postman
+
+<Steps>
+  <Step title="Open Authorization tab">
+    In Postman, select the request and go to the "Authorization" tab.
+  </Step>
+
+  <Step title="Select Basic Auth">
+    Choose "Basic Auth" from the Type dropdown.
+  </Step>
+
+  <Step title="Enter credentials">
+    Enter your username and password. Postman will automatically encode them.
+  </Step>
+
+  <Step title="Send request">
+    Send the request. The Authorization header will be automatically added.
+  </Step>
+</Steps>
+
+## CSRF Protection
+
+For stateless REST APIs, CSRF protection is typically disabled:
+
+```java SecurityConfig.java
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(csrf -> csrf.disable()) // Disable CSRF for REST APIs
+        .authorizeHttpRequests((requests) -> requests
+            // Authorization rules
+        )
+        .httpBasic(Customizer.withDefaults());
+    
+    return http.build();
+}
+```
+
+<Warning>
+  Only disable CSRF if you're building a stateless REST API. If your application uses session-based authentication or serves HTML forms, keep CSRF protection enabled.
+</Warning>
+
+## CORS Configuration
+
+If your API is accessed from web browsers, configure CORS:
+
+```java CorsConfig.java
+@Configuration
+public class CorsConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/api/**")
+            .allowedOrigins("http://localhost:3000", "https://yourdomain.com")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .allowedHeaders("*")
+            .allowCredentials(true)
+            .maxAge(3600);
+    }
+}
+```
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use HTTPS" icon="lock">
+    Always use HTTPS in production to encrypt credentials in transit. HTTP Basic Auth sends credentials in base64 encoding, which is easily decoded.
+  </Card>
+
+  <Card title="Strong Passwords" icon="key">
+    Enforce password policies: minimum length, complexity requirements, and password history.
+  </Card>
+
+  <Card title="Rate Limiting" icon="gauge">
+    Implement rate limiting to prevent brute force attacks on authentication endpoints.
+  </Card>
+
+  <Card title="Audit Logging" icon="list">
+    Log authentication attempts, especially failures, for security monitoring.
+  </Card>
+
+  <Card title="Token Expiration" icon="clock">
+    Consider implementing JWT tokens with expiration for better security than persistent Basic Auth.
+  </Card>
+
+  <Card title="Input Validation" icon="check">
+    Validate and sanitize all user inputs to prevent injection attacks.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized">
+    **Error**: All requests return 401 Unauthorized
+
+    **Solutions**:
+    - Verify you're sending the Authorization header
+    - Check credentials are correct
+    - Ensure user exists in the database/user store
+    - Verify password is properly encrypted when stored
+    - Check the Basic Auth header is properly formatted: `Basic base64(username:password)`
+  </Accordion>
+
+  <Accordion title="403 Forbidden">
+    **Error**: Authenticated but access denied (403)
+
+    **Solutions**:
+    - Verify user has the required role for the endpoint
+    - Check the endpoint's security configuration
+    - Ensure roles are properly assigned to the user
+  </Accordion>
+
+  <Accordion title="CORS errors">
+    **Error**: CORS policy blocking requests from browser
+
+    **Solutions**:
+    - Configure CORS to allow your frontend origin
+    - Ensure `allowCredentials(true)` is set if sending credentials
+    - Check allowed methods include the HTTP method you're using
+  </Accordion>
+
+  <Accordion title="Password not matching">
+    **Error**: Correct password not working
+
+    **Solutions**:
+    - Verify password was encrypted before saving: `passwordEncoder.encode(password)`
+    - Check BCrypt encoder is being used for validation
+    - Ensure the same BCrypt strength is used for encoding and validation
+    - Verify the stored password hash starts with `$2a$` or `$2b$` (BCrypt format)
+  </Accordion>
+
+  <Accordion title="Session issues">
+    **Error**: Session-related errors in stateless API
+
+    **Solutions**:
+    - Ensure `SessionCreationPolicy.STATELESS` is configured
+    - Don't rely on session storage in your application code
+    - Send authentication credentials with every request
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Security Topics
+
+<CardGroup cols={2}>
+  <Card title="JWT Authentication" icon="ticket">
+    Consider implementing JWT tokens for better scalability and stateless authentication.
+  </Card>
+
+  <Card title="OAuth 2.0" icon="right-to-bracket">
+    Integrate OAuth 2.0 for third-party authentication (Google, GitHub, etc.).
+  </Card>
+
+  <Card title="Two-Factor Auth" icon="mobile">
+    Add 2FA for enhanced security on sensitive operations.
+  </Card>
+
+  <Card title="API Key Authentication" icon="key">
+    Implement API keys for service-to-service authentication.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api/auth/register">
+    Explore the protected API endpoints
+  </Card>
+  <Card title="User Management" icon="users" href="/api/users/get">
+    Learn about user management endpoints
+  </Card>
+</CardGroup>

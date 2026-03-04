@@ -1,0 +1,430 @@
+---
+title: 'Database Configuration'
+description: 'Configure PostgreSQL database and JPA settings for the Library API'
+icon: 'database'
+---
+
+## Overview
+
+The Library API uses PostgreSQL as its primary database and Spring Data JPA for object-relational mapping. This guide covers database setup, configuration, and schema management.
+
+## PostgreSQL Setup
+
+<Steps>
+  <Step title="Install PostgreSQL">
+    Install PostgreSQL on your system:
+
+    <CodeGroup>
+      ```bash Ubuntu/Debian
+      sudo apt update
+      sudo apt install postgresql postgresql-contrib
+      ```
+
+      ```bash macOS (Homebrew)
+      brew install postgresql@15
+      brew services start postgresql@15
+      ```
+
+      ```bash Windows
+      # Download installer from postgresql.org
+      # Or use Chocolatey:
+      choco install postgresql
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Start PostgreSQL service">
+    Ensure PostgreSQL is running:
+
+    <CodeGroup>
+      ```bash Ubuntu/Debian
+      sudo systemctl start postgresql
+      sudo systemctl enable postgresql
+      sudo systemctl status postgresql
+      ```
+
+      ```bash macOS
+      brew services start postgresql@15
+      ```
+
+      ```bash Windows
+      # PostgreSQL runs as a Windows service
+      # Start it from Services manager or:
+      net start postgresql-x64-15
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Create the database">
+    Connect to PostgreSQL and create the library database:
+
+    ```bash
+    sudo -u postgres psql
+    ```
+
+    In the PostgreSQL prompt:
+
+    ```sql
+    CREATE DATABASE library;
+    CREATE USER libraryuser WITH ENCRYPTED PASSWORD 'your_secure_password';
+    GRANT ALL PRIVILEGES ON DATABASE library TO libraryuser;
+    \q
+    ```
+
+    <Note>
+      Replace `your_secure_password` with a strong password. Keep this password secure as you'll need it for the application configuration.
+    </Note>
+  </Step>
+
+  <Step title="Verify database creation">
+    List databases to confirm creation:
+
+    ```bash
+    sudo -u postgres psql -c "\l"
+    ```
+
+    You should see `library` in the list.
+  </Step>
+</Steps>
+
+## Application Properties Configuration
+
+Configure the database connection in `src/main/resources/application.properties`:
+
+### Basic Configuration
+
+```properties application.properties
+spring.application.name=libraryapi
+
+# Database Connection
+spring.datasource.url=jdbc:postgresql://localhost:5432/library
+spring.datasource.username=postgres
+spring.datasource.password=your_password
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA/Hibernate Configuration
+spring.jpa.hibernate.ddl-auto=update
+```
+
+### Configuration Properties Explained
+
+<ParamField path="spring.datasource.url" type="string" required>
+  JDBC connection URL for PostgreSQL. Format: `jdbc:postgresql://host:port/database`
+  
+  - **host**: Database server address (default: `localhost`)
+  - **port**: PostgreSQL port (default: `5432`)
+  - **database**: Database name (default: `library`)
+</ParamField>
+
+<ParamField path="spring.datasource.username" type="string" required>
+  Database username. Default PostgreSQL user is `postgres`.
+</ParamField>
+
+<ParamField path="spring.datasource.password" type="string" required>
+  Database password. Leave empty if no password is set (not recommended for production).
+</ParamField>
+
+<ParamField path="spring.datasource.driver-class-name" type="string" required>
+  JDBC driver class. For PostgreSQL: `org.postgresql.Driver`
+</ParamField>
+
+<ParamField path="spring.jpa.hibernate.ddl-auto" type="string">
+  Controls database schema generation. Options:
+  - `update`: Updates schema without dropping existing data (recommended for development)
+  - `create`: Drops and recreates schema on each startup (use with caution)
+  - `create-drop`: Creates schema on startup, drops on shutdown
+  - `validate`: Validates schema without making changes
+  - `none`: Disables automatic schema management
+</ParamField>
+
+## Advanced JPA Configuration
+
+For more control over JPA behavior, add these optional properties:
+
+```properties application.properties
+# Show SQL queries in logs (useful for debugging)
+spring.jpa.show-sql=true
+
+# Format SQL output for readability
+spring.jpa.properties.hibernate.format_sql=true
+
+# SQL dialect optimization for PostgreSQL
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# Connection pool settings
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=5
+spring.datasource.hikari.connection-timeout=30000
+
+# Enable batch processing for better performance
+spring.jpa.properties.hibernate.jdbc.batch_size=20
+spring.jpa.properties.hibernate.order_inserts=true
+spring.jpa.properties.hibernate.order_updates=true
+```
+
+<Warning>
+  Set `spring.jpa.show-sql=false` in production to avoid logging sensitive data and improve performance.
+</Warning>
+
+## Database Schema
+
+The Library API automatically creates the following tables based on JPA entities:
+
+### Users Table
+
+```sql
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    firstname VARCHAR(255),
+    lastname VARCHAR(255),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255),
+    google_id VARCHAR(255),
+    display_picture VARCHAR(255)
+);
+```
+
+### Books Table
+
+```sql
+CREATE TABLE books (
+    isbn VARCHAR(255) PRIMARY KEY,
+    title VARCHAR(255),
+    author_id BIGINT REFERENCES authors(id),
+    stock INTEGER,
+    cover_image VARCHAR(255)
+);
+```
+
+### Authors Table
+
+```sql
+CREATE TABLE authors (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255),
+    bio TEXT
+);
+```
+
+### Rentals Table
+
+```sql
+CREATE TABLE rentals (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id),
+    book_isbn VARCHAR(255) REFERENCES books(isbn),
+    rental_date TIMESTAMP,
+    return_date TIMESTAMP,
+    status VARCHAR(50)
+);
+```
+
+<Note>
+  With `spring.jpa.hibernate.ddl-auto=update`, Hibernate automatically creates these tables on application startup if they don't exist.
+</Note>
+
+## Entity Relationships
+
+The database schema includes the following relationships:
+
+<Steps>
+  <Step title="Users and Rentals">
+    One-to-Many relationship: A user can have multiple rentals
+
+    ```java UserEntity.java
+    @OneToMany(mappedBy = "user")
+    private Set<RentalEntity> borrowedBooks;
+    ```
+  </Step>
+
+  <Step title="Books and Authors">
+    Many-to-One relationship: Multiple books can have the same author
+
+    ```java BookEntity.java
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "author_id")
+    private AuthorEntity author;
+    ```
+  </Step>
+
+  <Step title="Books and Rentals">
+    One-to-Many relationship: A book can be rented multiple times
+
+    ```java BookEntity.java
+    @OneToMany(mappedBy = "book", orphanRemoval = true)
+    private Set<RentalEntity> rentals;
+    ```
+  </Step>
+</Steps>
+
+## Environment-Specific Configuration
+
+For different environments (development, staging, production), use Spring profiles:
+
+<Tabs>
+  <Tab title="Development">
+    Create `application-dev.properties`:
+
+    ```properties
+    spring.datasource.url=jdbc:postgresql://localhost:5432/library_dev
+    spring.jpa.hibernate.ddl-auto=update
+    spring.jpa.show-sql=true
+    ```
+
+    Run with:
+    ```bash
+    mvn spring-boot:run -Dspring-boot.run.profiles=dev
+    ```
+  </Tab>
+
+  <Tab title="Production">
+    Create `application-prod.properties`:
+
+    ```properties
+    spring.datasource.url=jdbc:postgresql://prod-db-server:5432/library
+    spring.datasource.username=${DB_USERNAME}
+    spring.datasource.password=${DB_PASSWORD}
+    spring.jpa.hibernate.ddl-auto=validate
+    spring.jpa.show-sql=false
+    ```
+
+    Run with environment variables:
+    ```bash
+    export DB_USERNAME=prod_user
+    export DB_PASSWORD=secure_password
+    java -jar target/libraryapi-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+    ```
+  </Tab>
+
+  <Tab title="Testing">
+    Create `application-test.properties`:
+
+    ```properties
+    spring.datasource.url=jdbc:postgresql://localhost:5432/library_test
+    spring.jpa.hibernate.ddl-auto=create-drop
+    spring.jpa.show-sql=false
+    ```
+
+    Tests automatically use this profile.
+  </Tab>
+</Tabs>
+
+## Database Migration
+
+For production environments, consider using a database migration tool instead of `ddl-auto=update`:
+
+### Using Flyway
+
+Add Flyway dependency to `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-core</artifactId>
+</dependency>
+```
+
+Update `application.properties`:
+
+```properties
+spring.jpa.hibernate.ddl-auto=validate
+spring.flyway.enabled=true
+spring.flyway.baseline-on-migrate=true
+```
+
+Create migration scripts in `src/main/resources/db/migration/`:
+
+```sql V1__create_tables.sql
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    firstname VARCHAR(255),
+    lastname VARCHAR(255),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255)
+);
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection refused">
+    **Error**: `Connection to localhost:5432 refused`
+
+    **Solutions**:
+    - Verify PostgreSQL is running: `sudo systemctl status postgresql`
+    - Check if PostgreSQL is listening on port 5432: `sudo netstat -plnt | grep 5432`
+    - Verify firewall settings allow connections to port 5432
+  </Accordion>
+
+  <Accordion title="Authentication failed">
+    **Error**: `FATAL: password authentication failed for user "postgres"`
+
+    **Solutions**:
+    - Verify username and password in `application.properties`
+    - Check PostgreSQL authentication configuration in `pg_hba.conf`
+    - Try resetting the password:
+      ```sql
+      ALTER USER postgres WITH PASSWORD 'new_password';
+      ```
+  </Accordion>
+
+  <Accordion title="Database does not exist">
+    **Error**: `FATAL: database "library" does not exist`
+
+    **Solutions**:
+    - Create the database: `sudo -u postgres createdb library`
+    - Verify database exists: `sudo -u postgres psql -c "\l"`
+  </Accordion>
+
+  <Accordion title="Schema validation failed">
+    **Error**: `Schema-validation: missing table [users]`
+
+    **Solutions**:
+    - Change `spring.jpa.hibernate.ddl-auto` to `update` or `create`
+    - Manually create the required tables
+    - Run database migrations if using Flyway/Liquibase
+  </Accordion>
+
+  <Accordion title="Connection pool exhausted">
+    **Error**: `Unable to acquire JDBC Connection`
+
+    **Solutions**:
+    - Increase connection pool size:
+      ```properties
+      spring.datasource.hikari.maximum-pool-size=20
+      ```
+    - Check for connection leaks in your code
+    - Reduce connection timeout if connections are being held too long
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Environment Variables" icon="lock">
+    Never commit database credentials to version control. Use environment variables or external configuration.
+  </Card>
+  
+  <Card title="Connection Pooling" icon="water">
+    Configure appropriate pool sizes based on your application load and database capacity.
+  </Card>
+  
+  <Card title="Schema Management" icon="table">
+    Use `validate` or migration tools in production instead of `update` or `create`.
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line">
+    Enable SQL logging in development, but disable in production for security and performance.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Security Configuration" icon="shield" href="/guides/security">
+    Learn how to secure your API endpoints
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth/register">
+    Explore the available endpoints
+  </Card>
+</CardGroup>

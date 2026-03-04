@@ -1,0 +1,80 @@
+---
+title: Update Author
+api: PUT /authors/{id}
+---
+
+Performs a full update of an existing author. All fields must be provided.
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the author to update
+</ParamField>
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  The name of the author
+</ParamField>
+
+<ParamField body="age" type="integer">
+  The age of the author
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="long">
+  The unique identifier of the updated author
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the author
+</ResponseField>
+
+<ResponseField name="age" type="integer">
+  The age of the author
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="200" type="OK">
+  Author successfully updated
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  Author with the specified ID does not exist
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Authentication credentials are missing or invalid
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X PUT http://localhost:8080/authors/1 \
+  -u username:password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "J.K. Rowling",
+    "age": 59
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "id": 1,
+  "name": "J.K. Rowling",
+  "age": 59
+}
+```
+
+## Partial Updates
+
+For partial updates where you only want to update specific fields, use the [PATCH /authors/{id}](#) endpoint instead.

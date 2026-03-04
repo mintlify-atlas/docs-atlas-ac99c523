@@ -1,0 +1,72 @@
+---
+title: 'Login User'
+api: 'POST /auth/login'
+description: 'Authenticate a user with email and password'
+---
+
+## Endpoint
+
+```
+POST /auth/login
+```
+
+Authenticate a user using their email and password. The endpoint validates the credentials and returns a success message if authentication is successful.
+
+## Authentication
+
+No authentication required (this endpoint provides authentication).
+
+## Request Body
+
+<ParamField body="email" type="string" required>
+  User's registered email address
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password
+</ParamField>
+
+## Response
+
+Returns a plain text string message indicating the result of the login attempt.
+
+## Status Codes
+
+<ResponseField name="200" type="OK">
+  Login successful. Returns message: "Login successful"
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Invalid credentials. Returns error message: "Invalid email or password"
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://api.example.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john.doe@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+## Example Response
+
+### Success (200 OK)
+
+```
+Login successful
+```
+
+### Error (401 Unauthorized)
+
+```
+Invalid email or password
+```
+
+## Notes
+
+- Passwords are validated using BCrypt encryption
+- The endpoint checks both if the email exists and if the password matches
+- Both invalid email and invalid password return the same error message for security reasons (prevents email enumeration attacks)

@@ -1,0 +1,90 @@
+---
+title: 'Get Book'
+api: 'GET /books/{isbn}'
+---
+
+Retrieve a specific book by its ISBN.
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="isbn" type="string" required>
+  The ISBN of the book to retrieve.
+</ParamField>
+
+## Response
+
+<ResponseField name="isbn" type="string">
+  The ISBN of the book.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  The title of the book.
+</ResponseField>
+
+<ResponseField name="author" type="object">
+  The author information.
+  
+  <ResponseField name="author.id" type="integer">
+    The unique identifier of the author.
+  </ResponseField>
+  
+  <ResponseField name="author.name" type="string">
+    The name of the author.
+  </ResponseField>
+  
+  <ResponseField name="author.age" type="integer">
+    The age of the author.
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="stock" type="integer">
+  The number of copies available in stock.
+</ResponseField>
+
+<ResponseField name="coverImage" type="string">
+  URL or path to the book's cover image. Only included if set.
+</ResponseField>
+
+## Status Codes
+
+- **200 OK**: Successfully retrieved the book
+- **404 Not Found**: Book with the specified ISBN does not exist
+- **401 Unauthorized**: Authentication credentials are missing or invalid
+
+## Example Request
+
+```bash
+curl -X GET https://api.example.com/books/978-0-7475-3269-9 \
+  -u username:password
+```
+
+## Example Response
+
+### Success (200 OK)
+
+```json
+{
+  "isbn": "978-0-7475-3269-9",
+  "title": "Harry Potter and the Philosopher Stone",
+  "author": {
+    "id": 1,
+    "name": "J.K. Rowling",
+    "age": 58
+  },
+  "stock": 15,
+  "coverImage": "https://example.com/covers/hp1.jpg"
+}
+```
+
+### Not Found (404)
+
+If the book does not exist, the endpoint returns a 404 status code with an empty response body.
+
+## Notes
+
+- The ISBN must be an exact match (case-sensitive).
+- If the book has no cover image, the `coverImage` field will be omitted from the response.

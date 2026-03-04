@@ -1,0 +1,180 @@
+---
+title: "List Users"
+api: "GET /users"
+description: "Retrieve a paginated list of all users"
+---
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number (zero-indexed)
+</ParamField>
+
+<ParamField query="size" type="integer" default="20">
+  Number of users per page
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
+  
+  Examples:
+  - `sort=lastname,asc`
+  - `sort=email,desc`
+  - `sort=id,asc&sort=lastname,desc`
+</ParamField>
+
+## Response
+
+The response follows Spring Data's Page format:
+
+<ResponseField name="content" type="array">
+  Array of user objects
+  <Expandable title="User properties">
+    <ResponseField name="id" type="long">
+      Unique identifier for the user
+    </ResponseField>
+    <ResponseField name="firstname" type="string">
+      The user's first name
+    </ResponseField>
+    <ResponseField name="lastname" type="string">
+      The user's last name
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      The user's email address
+    </ResponseField>
+    <ResponseField name="borrowedBooks" type="array">
+      Set of rental records for books borrowed by this user
+    </ResponseField>
+    <ResponseField name="googleId" type="string">
+      Google OAuth ID (only included if set)
+    </ResponseField>
+    <ResponseField name="displayPicture" type="string">
+      URL to the user's display picture (only included if set)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="pageable" type="object">
+  Pagination metadata
+  <Expandable title="Pageable properties">
+    <ResponseField name="pageNumber" type="integer">
+      Current page number (zero-indexed)
+    </ResponseField>
+    <ResponseField name="pageSize" type="integer">
+      Number of items per page
+    </ResponseField>
+    <ResponseField name="sort" type="object">
+      Sorting information
+    </ResponseField>
+    <ResponseField name="offset" type="long">
+      Offset of the first item in current page
+    </ResponseField>
+    <ResponseField name="paged" type="boolean">
+      Whether pagination is enabled
+    </ResponseField>
+    <ResponseField name="unpaged" type="boolean">
+      Whether pagination is disabled
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="totalPages" type="integer">
+  Total number of pages
+</ResponseField>
+
+<ResponseField name="totalElements" type="long">
+  Total number of users across all pages
+</ResponseField>
+
+<ResponseField name="last" type="boolean">
+  Whether this is the last page
+</ResponseField>
+
+<ResponseField name="size" type="integer">
+  Page size
+</ResponseField>
+
+<ResponseField name="number" type="integer">
+  Current page number (zero-indexed)
+</ResponseField>
+
+<ResponseField name="numberOfElements" type="integer">
+  Number of elements in current page
+</ResponseField>
+
+<ResponseField name="first" type="boolean">
+  Whether this is the first page
+</ResponseField>
+
+<ResponseField name="empty" type="boolean">
+  Whether the page is empty
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="200" type="OK">
+  Users successfully retrieved
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Missing or invalid authentication credentials
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET 'https://api.library.com/users?page=0&size=10&sort=lastname,asc' \
+  -u username:password
+```
+
+```bash cURL with Multiple Pages
+curl -X GET 'https://api.library.com/users?page=1&size=5' \
+  -u username:password
+```
+
+```json Response
+{
+  "content": [
+    {
+      "id": 1,
+      "firstname": "John",
+      "lastname": "Doe",
+      "email": "john.doe@example.com",
+      "borrowedBooks": []
+    },
+    {
+      "id": 2,
+      "firstname": "Jane",
+      "lastname": "Smith",
+      "email": "jane.smith@example.com",
+      "borrowedBooks": []
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "sort": {
+      "sorted": true,
+      "unsorted": false,
+      "empty": false
+    },
+    "offset": 0,
+    "paged": true,
+    "unpaged": false
+  },
+  "totalPages": 1,
+  "totalElements": 2,
+  "last": true,
+  "size": 10,
+  "number": 0,
+  "numberOfElements": 2,
+  "first": true,
+  "empty": false
+}
+```
+
+</RequestExample>

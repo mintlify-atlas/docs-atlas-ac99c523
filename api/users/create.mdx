@@ -1,0 +1,129 @@
+---
+title: "Create User"
+api: "POST /users"
+description: "Create a new user in the library system"
+---
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Request Body
+
+<ParamField body="firstname" type="string">
+  The user's first name
+</ParamField>
+
+<ParamField body="lastname" type="string">
+  The user's last name
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  The user's email address. Must be unique.
+</ParamField>
+
+<ParamField body="password" type="string">
+  The user's password. Will be encrypted before storage.
+</ParamField>
+
+<ParamField body="googleId" type="string">
+  Optional Google OAuth ID for users signing in with Google
+</ParamField>
+
+<ParamField body="displayPicture" type="string">
+  URL to the user's display picture
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="long">
+  Unique identifier for the user
+</ResponseField>
+
+<ResponseField name="firstname" type="string">
+  The user's first name
+</ResponseField>
+
+<ResponseField name="lastname" type="string">
+  The user's last name
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  The user's email address
+</ResponseField>
+
+<ResponseField name="borrowedBooks" type="array">
+  Set of rental records for books borrowed by this user
+  <Expandable title="RentalDto properties">
+    <ResponseField name="id" type="long">
+      Unique identifier for the rental
+    </ResponseField>
+    <ResponseField name="user" type="object">
+      User entity reference
+    </ResponseField>
+    <ResponseField name="book" type="object">
+      Book entity reference
+    </ResponseField>
+    <ResponseField name="loanDate" type="string">
+      ISO 8601 datetime when the book was borrowed
+    </ResponseField>
+    <ResponseField name="returnDate" type="string">
+      ISO 8601 datetime when the book should be returned
+    </ResponseField>
+    <ResponseField name="returned" type="boolean">
+      Whether the book has been returned
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="googleId" type="string">
+  Google OAuth ID (only included if set)
+</ResponseField>
+
+<ResponseField name="displayPicture" type="string">
+  URL to the user's display picture (only included if set)
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="201" type="Created">
+  User successfully created
+</ResponseField>
+
+<ResponseField name="400" type="Bad Request">
+  Invalid request body or missing required fields
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Missing or invalid authentication credentials
+</ResponseField>
+
+<ResponseField name="409" type="Conflict">
+  Email address already exists
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://api.library.com/users \
+  -u username:password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstname": "John",
+    "lastname": "Doe",
+    "email": "john.doe@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+```json Response
+{
+  "id": 1,
+  "firstname": "John",
+  "lastname": "Doe",
+  "email": "john.doe@example.com",
+  "borrowedBooks": []
+}
+```
+
+</RequestExample>

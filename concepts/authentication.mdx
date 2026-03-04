@@ -1,0 +1,184 @@
+---
+title: 'Authentication'
+description: 'Learn how the Library API secures endpoints using Spring Security and BCrypt password encryption'
+icon: 'shield-halved'
+---
+
+## Overview
+
+The Library API uses Spring Security with HTTP Basic Authentication to secure endpoints. Passwords are encrypted using BCrypt with a strength of 12 rounds, and authentication is stateless with no session management.
+
+## Security Configuration
+
+The security setup is configured in `SecurityConfig.java:28-39`, which defines the security filter chain:
+
+```java
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+            .authorizeHttpRequests((requests) -> requests
+                    .requestMatchers("/", "/auth/login", "/home").permitAll()
+                    .requestMatchers("/auth/register").permitAll()
+                    .anyRequest().authenticated())
+            .httpBasic(Customizer.withDefaults())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .logout((logout) -> logout.permitAll());
+
+    return http.build();
+}
+```
+
+### Public Endpoints
+
+The following endpoints are accessible without authentication:
+
+- `/` - Home page
+- `/auth/login` - User login
+- `/auth/register` - User registration
+- `/home` - Home page
+
+### Protected Endpoints
+
+All other endpoints require HTTP Basic Authentication with a valid email and password.
+
+## Password Encryption
+
+Passwords are encrypted using BCrypt with a strength factor of 12, configured in `SecurityConfig.java:42-44`:
+
+```java
+@Bean
+public BCryptPasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder(12);
+}
+```
+
+### Password Hashing on Registration
+
+When a user registers, their password is automatically hashed before being stored in the database. This is handled in `UserServiceImpl.java:34-36`:
+
+```java
+@Override
+public UserEntity save(UserEntity userEntity) {
+    userEntity.setPassword(passwordEncoder.encode(userEntity.getPassword()));
+    return userRepository.save(userEntity);
+}
+```
+
+### Password Verification on Login
+
+During login, the provided password is compared with the stored hash using BCrypt's matching algorithm in `AuthController.java:57-58`:
+
+```java
+if (existingUser == null || !passwordEncoder.matches(userDto.getPassword(),
+        existingUser.getPassword())) {
+    return new ResponseEntity<>("Invalid email or password",
+            HttpStatus.UNAUTHORIZED);
+}
+```
+
+## Authentication Provider
+
+The API uses a `DaoAuthenticationProvider` configured in `SecurityConfig.java:54-59`:
+
+```java
+@Bean
+public AuthenticationProvider authenticationProvider() {
+    DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+    daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
+    daoAuthenticationProvider.setUserDetailsService(userDetailsService());
+    return daoAuthenticationProvider;
+}
+```
+
+This provider:
+- Uses the BCrypt password encoder for password verification
+- Integrates with a custom `UserDetailsService` for loading user information
+- Leverages `UserPrincipal` (defined in `UserPrincipal.java:10-32`) to wrap user entities
+
+## User Details Service
+
+The `UserDetailsService` loads user information from the database using email as the username. This is implemented in `UserServiceImpl.java:63-71`:
+
+```java
+@Override
+public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    Optional<UserEntity> userEntity = userRepository.findByEmail(username);
+
+    if (userEntity == null) {
+        throw new UsernameNotFoundException("user not found");
+    }
+
+    return new UserPrincipal(userEntity.get());
+}
+```
+
+## Registration Flow
+
+The registration process in `AuthController.java:36-45` includes validation to prevent duplicate emails:
+
+```java
+@PostMapping("/auth/register")
+public ResponseEntity<?> register(@RequestBody UserDto userDto) {
+    if (userService.findByEmail(userDto.getEmail()).isPresent()) {
+        return new ResponseEntity<>("Email already in use", HttpStatus.BAD_REQUEST);
+    }
+    UserEntity userEntity = userMapper.mapFrom(userDto);
+    UserEntity savedUserEntity = userService.save(userEntity);
+
+    return new ResponseEntity<>(userMapper.mapTo(savedUserEntity), HttpStatus.CREATED);
+}
+```
+
+<Note>
+The password is automatically hashed by the `UserService.save()` method before storage, so controllers don't need to handle encryption manually.
+</Note>
+
+## Login Flow
+
+The login endpoint in `AuthController.java:48-63` validates credentials:
+
+```java
+@PostMapping("/auth/login")
+public ResponseEntity<String> login(@RequestBody UserDto userDto) {
+    Optional<UserEntity> possibleUser = userService.findByEmail(userDto.getEmail());
+
+    if (!possibleUser.isPresent()) {
+        return new ResponseEntity<>("Invalid email or password",
+                HttpStatus.UNAUTHORIZED);
+    }
+
+    UserEntity existingUser = possibleUser.get();
+    if (existingUser == null || !passwordEncoder.matches(userDto.getPassword(),
+            existingUser.getPassword())) {
+        return new ResponseEntity<>("Invalid email or password",
+                HttpStatus.UNAUTHORIZED);
+    }
+    return new ResponseEntity<>("Login successful", HttpStatus.OK);
+}
+```
+
+## Stateless Sessions
+
+The API is configured with stateless session management (`SessionCreationPolicy.STATELESS`), meaning:
+
+- No server-side sessions are created
+- Each request must include authentication credentials
+- Authentication state is not preserved between requests
+- Suitable for REST API clients and reduces server memory usage
+
+<Warning>
+HTTP Basic Authentication transmits credentials with every request. Always use HTTPS in production to encrypt credentials in transit.
+</Warning>
+
+## User Authorities
+
+All authenticated users are assigned the "USER" authority, as defined in `UserPrincipal.java:19-21`:
+
+```java
+@Override
+public Collection<? extends GrantedAuthority> getAuthorities() {
+    return Collections.singleton(new SimpleGrantedAuthority("USER"));
+}
+```
+
+This can be extended to support role-based access control (RBAC) by adding role fields to the `UserEntity` and modifying the `UserPrincipal` implementation.

@@ -1,0 +1,383 @@
+---
+title: 'Error Handling'
+description: 'Learn how the Library API handles errors and returns appropriate HTTP status codes'
+icon: 'triangle-exclamation'
+---
+
+## Overview
+
+The Library API uses standard HTTP status codes to indicate the success or failure of requests. Controllers return `ResponseEntity` objects with appropriate status codes and error messages.
+
+## HTTP Status Codes
+
+### Success Codes
+
+<ResponseField name="200 OK" type="success">
+  Request succeeded and returned data. Used for successful GET, PUT, and PATCH operations.
+</ResponseField>
+
+<ResponseField name="201 CREATED" type="success">
+  Resource was successfully created. Used for successful POST operations that create new resources.
+</ResponseField>
+
+<ResponseField name="204 NO CONTENT" type="success">
+  Request succeeded but no content is returned. Used for successful DELETE operations.
+</ResponseField>
+
+### Client Error Codes
+
+<ResponseField name="400 BAD REQUEST" type="error">
+  Invalid request data or business logic violation (e.g., duplicate email, insufficient stock).
+</ResponseField>
+
+<ResponseField name="401 UNAUTHORIZED" type="error">
+  Authentication failed or credentials are invalid.
+</ResponseField>
+
+<ResponseField name="404 NOT FOUND" type="error">
+  Requested resource does not exist.
+</ResponseField>
+
+## Error Handling Patterns
+
+### Resource Not Found
+
+When a requested resource doesn't exist, controllers return `404 NOT FOUND`. This pattern is used across all resource controllers.
+
+#### Example: Book Not Found
+
+From `BookController.java:55-61`:
+
+```java
+@GetMapping(path = "/books/{isbn}")
+public ResponseEntity<BookDto> getBook(@PathVariable("isbn") String isbn) {
+    Optional<BookEntity> foundBook = bookService.findOne(isbn);
+    return foundBook.map(bookEntity -> {
+        BookDto bookDto = bookMapper.mapTo(bookEntity);
+        return new ResponseEntity<>(bookDto, HttpStatus.OK);
+    }).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+}
+```
+
+#### Example: Author Not Found
+
+From `AuthorController.java:50-56`:
+
+```java
+@GetMapping(path = "/authors/{id}")
+public ResponseEntity<AuthorDto> getAuthor(@PathVariable("id") Long id) {
+    Optional<AuthorEntity> foundAuthor = authorService.findOne(id);
+    return foundAuthor.map(authorEntity -> {
+        AuthorDto authorDto = authorMapper.mapTo(authorEntity);
+        return new ResponseEntity<>(authorDto, HttpStatus.OK);
+    }).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+}
+```
+
+#### Example: User Not Found
+
+From `UserController.java:50-56`:
+
+```java
+@GetMapping(path = "/users/{id}")
+public ResponseEntity<UserDto> getUser(@PathVariable("id") Long id) {
+    Optional<UserEntity> foundUser = userService.findOne(id);
+    return foundUser.map(userEntity -> {
+        UserDto userDto = userMapper.mapTo(userEntity);
+        return new ResponseEntity<>(userDto, HttpStatus.OK);
+    }).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+}
+```
+
+<Info>
+The pattern `Optional.map(...).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND))` is consistent across all GET operations for single resources.
+</Info>
+
+### Update Operations on Non-Existent Resources
+
+Before performing update operations (PUT or PATCH), controllers check if the resource exists:
+
+#### Example: Update Author
+
+From `AuthorController.java:58-69`:
+
+```java
+@PutMapping(path = "/authors/{id}")
+public ResponseEntity<AuthorDto> fullUpdateAuthor(@PathVariable("id") Long id, @RequestBody AuthorDto authorDto) {
+    if (!authorService.isExists(id)) {
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    authorDto.setId(id);
+    AuthorEntity authorEntity = authorMapper.mapFrom(authorDto);
+    AuthorEntity savedAuthorEntity = authorService.save(authorEntity);
+
+    return new ResponseEntity<>(authorMapper.mapTo(savedAuthorEntity), HttpStatus.OK);
+}
+```
+
+#### Example: Partial Update User
+
+From `UserController.java:71-82`:
+
+```java
+@PatchMapping(path = "/users/{id}")
+public ResponseEntity<UserDto> partialUpdateUser(@PathVariable("id") Long id,
+        @RequestBody UserDto userDto) {
+    if (!userService.isExists(id)) {
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    UserEntity userEntity = userMapper.mapFrom(userDto);
+    UserEntity updatedUserEntity = userService.partialUpdate(id, userEntity);
+
+    return new ResponseEntity<>(userMapper.mapTo(updatedUserEntity), HttpStatus.OK);
+}
+```
+
+### Authentication Errors
+
+Authentication failures return `401 UNAUTHORIZED` with descriptive error messages.
+
+#### Example: Invalid Login Credentials
+
+From `AuthController.java:48-63`:
+
+```java
+@PostMapping("/auth/login")
+public ResponseEntity<String> login(@RequestBody UserDto userDto) {
+    Optional<UserEntity> possibleUser = userService.findByEmail(userDto.getEmail());
+
+    if (!possibleUser.isPresent()) {
+        return new ResponseEntity<>("Invalid email or password",
+                HttpStatus.UNAUTHORIZED);
+    }
+
+    UserEntity existingUser = possibleUser.get();
+    if (existingUser == null || !passwordEncoder.matches(userDto.getPassword(),
+            existingUser.getPassword())) {
+        return new ResponseEntity<>("Invalid email or password",
+                HttpStatus.UNAUTHORIZED);
+    }
+    return new ResponseEntity<>("Login successful", HttpStatus.OK);
+}
+```
+
+<Note>
+The error message "Invalid email or password" is intentionally vague to prevent user enumeration attacks. It doesn't reveal whether the email exists or if only the password was wrong.
+</Note>
+
+### Business Logic Errors
+
+Business rule violations return `400 BAD REQUEST` with descriptive error messages.
+
+#### Example: Duplicate Email Registration
+
+From `AuthController.java:36-45`:
+
+```java
+@PostMapping("/auth/register")
+public ResponseEntity<?> register(@RequestBody UserDto userDto) {
+    if (userService.findByEmail(userDto.getEmail()).isPresent()) {
+        return new ResponseEntity<>("Email already in use", HttpStatus.BAD_REQUEST);
+    }
+    UserEntity userEntity = userMapper.mapFrom(userDto);
+    UserEntity savedUserEntity = userService.save(userEntity);
+
+    return new ResponseEntity<>(userMapper.mapTo(savedUserEntity), HttpStatus.CREATED);
+}
+```
+
+#### Example: Insufficient Stock
+
+From `RentalController.java:62-72`:
+
+```java
+@PostMapping(path = "/books/{isbn}/user/{user_id}")
+public ResponseEntity<RentalDto> rentBook(@PathVariable("user_id") Long user_id,
+        @PathVariable("isbn") String isbn) {
+    if (!bookService.isExists(isbn) || !userService.isExists(user_id)) {
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    BookEntity bookEntity = bookService.findOne(isbn).get();
+    if (bookEntity.getStock() > 0) {
+        bookEntity.setStock(bookEntity.getStock() - 1);
+        bookService.partialUpdate(isbn, bookEntity);
+    } else {
+        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
+    // ... continues with rental creation
+}
+```
+
+<Warning>
+The insufficient stock error returns only a status code without a descriptive message. Consider adding an error message like "Book out of stock" for better client experience.
+</Warning>
+
+### Multiple Resource Validation
+
+Some operations require multiple resources to exist. The rental endpoint validates both book and user existence:
+
+From `RentalController.java:62-64`:
+
+```java
+if (!bookService.isExists(isbn) || !userService.isExists(user_id)) {
+    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+}
+```
+
+## Create vs Update Responses
+
+The API differentiates between creating and updating resources with appropriate status codes.
+
+### PUT Operations (Upsert)
+
+PUT operations can create or update, returning different status codes accordingly.
+
+From `BookController.java:35-46`:
+
+```java
+@PutMapping(path = "/books/{isbn}")
+public ResponseEntity<BookDto> createUpdateBook(@PathVariable("isbn") String isbn, @RequestBody BookDto bookDto) {
+    BookEntity bookEntity = bookMapper.mapFrom(bookDto);
+    boolean bookExists = bookService.isExists(isbn);
+    BookEntity savedBookEntity = bookService.createUpdateBook(isbn, bookEntity);
+    BookDto savedBookDto = bookMapper.mapTo(savedBookEntity);
+
+    if (bookExists) {
+        return new ResponseEntity<>(savedBookDto, HttpStatus.OK);
+    } else {
+        return new ResponseEntity<>(savedBookDto, HttpStatus.CREATED);
+    }
+}
+```
+
+- Returns `201 CREATED` when creating a new book
+- Returns `200 OK` when updating an existing book
+
+### POST Operations (Create Only)
+
+POST operations always create new resources and return `201 CREATED`.
+
+From `AuthorController.java:36-41`:
+
+```java
+@PostMapping(path = "/authors")
+public ResponseEntity<AuthorDto> createAuthor(@RequestBody AuthorDto author) {
+    AuthorEntity authorEntity = authorMapper.mapFrom(author);
+    AuthorEntity savedAuthorEntity = authorService.save(authorEntity);
+
+    return new ResponseEntity<>(authorMapper.mapTo(savedAuthorEntity), HttpStatus.CREATED);
+}
+```
+
+## Delete Operations
+
+DELETE operations return `204 NO CONTENT` on success. The API does not validate if the resource existed before deletion.
+
+### Example: Delete Book
+
+From `BookController.java:74-78`:
+
+```java
+@DeleteMapping(path = "/books/{isbn}")
+public ResponseEntity deleteBook(@PathVariable("isbn") String isbn) {
+    bookService.delete(isbn);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+}
+```
+
+<Info>
+The API follows an idempotent DELETE pattern where deleting a non-existent resource is not treated as an error. This simplifies client logic but makes it impossible to distinguish between successful deletion and deletion of non-existent resources.
+</Info>
+
+## Service Layer Exceptions
+
+Some service methods throw runtime exceptions that should be caught and handled by controllers.
+
+### Example: Partial Update on Non-Existent Resource
+
+From `UserServiceImpl.java:79-91`:
+
+```java
+@Override
+public UserEntity partialUpdate(Long id, UserEntity userEntity) {
+    userEntity.setId(id);
+
+    return userRepository.findById(id).map(existingUser -> {
+        Optional.ofNullable(userEntity.getFirstname()).ifPresent(existingUser::setFirstname);
+        Optional.ofNullable(userEntity.getLastname()).ifPresent(existingUser::setLastname);
+        Optional.ofNullable(userEntity.getPassword()).ifPresent(existingUser::setPassword);
+        Optional.ofNullable(userEntity.getGoogleId()).ifPresent(existingUser::setGoogleId);
+        Optional.ofNullable(userEntity.getDisplayPicture()).ifPresent(existingUser::setDisplayPicture);
+        return userRepository.save(existingUser);
+    }).orElseThrow(() -> new RuntimeException("User does not exist"));
+}
+```
+
+<Warning>
+This `RuntimeException` would result in an HTTP 500 error if the controller didn't check `userService.isExists(id)` first. Controllers should always validate resource existence before calling partial update methods.
+</Warning>
+
+## Error Response Format
+
+The API uses different response formats for errors:
+
+### Status Code Only
+
+Some errors return only status codes without body content:
+
+```java
+return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+```
+
+### String Message
+
+Some errors return descriptive string messages:
+
+```java
+return new ResponseEntity<>("Email already in use", HttpStatus.BAD_REQUEST);
+```
+
+### Generic Type
+
+The registration endpoint uses a wildcard response type to accommodate both success and error responses:
+
+```java
+public ResponseEntity<?> register(@RequestBody UserDto userDto)
+```
+
+<Tip>
+For consistency, consider implementing a global exception handler using `@ControllerAdvice` to standardize error response formats across all endpoints.
+</Tip>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Check Before Update" icon="magnifying-glass">
+    Always verify resource existence before performing update operations to avoid service-layer exceptions.
+  </Card>
+  <Card title="Meaningful Messages" icon="message">
+    Include descriptive error messages in 400 and 401 responses to help clients understand what went wrong.
+  </Card>
+  <Card title="Consistent Responses" icon="equals">
+    Use the same error response format across similar endpoints for predictable client integration.
+  </Card>
+  <Card title="Security First" icon="shield">
+    Avoid exposing sensitive information in error messages that could aid attackers.
+  </Card>
+</CardGroup>
+
+## Summary Table
+
+| Scenario | Status Code | Example Endpoint |
+|----------|-------------|------------------|
+| Successful GET | 200 OK | `GET /books/{isbn}` |
+| Resource created | 201 CREATED | `POST /authors` |
+| Resource updated | 200 OK | `PUT /books/{isbn}` |
+| Resource deleted | 204 NO CONTENT | `DELETE /books/{isbn}` |
+| Resource not found | 404 NOT FOUND | `GET /users/{id}` (non-existent) |
+| Duplicate resource | 400 BAD REQUEST | `POST /auth/register` (existing email) |
+| Business rule violation | 400 BAD REQUEST | `POST /books/{isbn}/user/{id}` (no stock) |
+| Invalid credentials | 401 UNAUTHORIZED | `POST /auth/login` (wrong password) |

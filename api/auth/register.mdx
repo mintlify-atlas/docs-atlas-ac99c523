@@ -1,0 +1,112 @@
+---
+title: 'Register User'
+api: 'POST /auth/register'
+description: 'Create a new user account'
+---
+
+## Endpoint
+
+```
+POST /auth/register
+```
+
+Create a new user account in the library system. This endpoint validates that the email is not already in use before creating the account.
+
+## Authentication
+
+No authentication required.
+
+## Request Body
+
+<ParamField body="firstname" type="string" required>
+  User's first name
+</ParamField>
+
+<ParamField body="lastname" type="string" required>
+  User's last name
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  User's email address. Must be unique in the system.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password. Will be encrypted before storage.
+</ParamField>
+
+<ParamField body="googleId" type="string" optional>
+  Optional Google OAuth ID for social login integration
+</ParamField>
+
+<ParamField body="displayPicture" type="string" optional>
+  Optional URL to user's display picture
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="long">
+  Unique identifier for the created user
+</ResponseField>
+
+<ResponseField name="firstname" type="string">
+  User's first name
+</ResponseField>
+
+<ResponseField name="lastname" type="string">
+  User's last name
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  User's email address
+</ResponseField>
+
+<ResponseField name="borrowedBooks" type="array">
+  Array of rental records for books borrowed by the user (empty for new users)
+</ResponseField>
+
+<ResponseField name="displayPicture" type="string">
+  URL to user's display picture (if provided)
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="201" type="Created">
+  User successfully created. Returns the created user object.
+</ResponseField>
+
+<ResponseField name="400" type="Bad Request">
+  Email already in use. Returns error message: "Email already in use"
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://api.example.com/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstname": "John",
+    "lastname": "Doe",
+    "email": "john.doe@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+## Example Response
+
+### Success (201 Created)
+
+```json
+{
+  "id": 1,
+  "firstname": "John",
+  "lastname": "Doe",
+  "email": "john.doe@example.com",
+  "borrowedBooks": []
+}
+```
+
+### Error (400 Bad Request)
+
+```json
+Email already in use
+```

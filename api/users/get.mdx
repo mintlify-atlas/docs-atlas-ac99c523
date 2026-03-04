@@ -1,0 +1,123 @@
+---
+title: "Get User"
+api: "GET /users/{id}"
+description: "Retrieve a specific user by their ID"
+---
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the user to retrieve
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="long">
+  Unique identifier for the user
+</ResponseField>
+
+<ResponseField name="firstname" type="string">
+  The user's first name
+</ResponseField>
+
+<ResponseField name="lastname" type="string">
+  The user's last name
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  The user's email address
+</ResponseField>
+
+<ResponseField name="borrowedBooks" type="array">
+  Set of rental records for books borrowed by this user
+  <Expandable title="RentalDto properties">
+    <ResponseField name="id" type="long">
+      Unique identifier for the rental
+    </ResponseField>
+    <ResponseField name="user" type="object">
+      User entity reference
+    </ResponseField>
+    <ResponseField name="book" type="object">
+      Book entity reference
+    </ResponseField>
+    <ResponseField name="loanDate" type="string">
+      ISO 8601 datetime when the book was borrowed
+    </ResponseField>
+    <ResponseField name="returnDate" type="string">
+      ISO 8601 datetime when the book should be returned
+    </ResponseField>
+    <ResponseField name="returned" type="boolean">
+      Whether the book has been returned
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="googleId" type="string">
+  Google OAuth ID (only included if set)
+</ResponseField>
+
+<ResponseField name="displayPicture" type="string">
+  URL to the user's display picture (only included if set)
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="200" type="OK">
+  User successfully retrieved
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Missing or invalid authentication credentials
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  User with the specified ID does not exist
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://api.library.com/users/1 \
+  -u username:password
+```
+
+```json Response
+{
+  "id": 1,
+  "firstname": "John",
+  "lastname": "Doe",
+  "email": "john.doe@example.com",
+  "borrowedBooks": [
+    {
+      "id": 10,
+      "user": {
+        "id": 1,
+        "email": "john.doe@example.com"
+      },
+      "book": {
+        "id": 5,
+        "title": "The Great Gatsby"
+      },
+      "loanDate": "2026-02-15T10:00:00Z",
+      "returnDate": "2026-03-15T10:00:00Z",
+      "returned": false
+    }
+  ],
+  "displayPicture": "https://example.com/pictures/johndoe.jpg"
+}
+```
+
+```json 404 Response
+{
+  "timestamp": "2026-03-04T10:30:00.000+00:00",
+  "status": 404,
+  "error": "Not Found",
+  "path": "/users/999"
+}
+```
+
+</RequestExample>

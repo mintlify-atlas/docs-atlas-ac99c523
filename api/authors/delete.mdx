@@ -1,0 +1,41 @@
+---
+title: Delete Author
+api: DELETE /authors/{id}
+---
+
+Deletes an author from the library system.
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the author to delete
+</ParamField>
+
+## Response
+
+This endpoint returns no content on success.
+
+## Status Codes
+
+<ResponseField name="204" type="No Content">
+  Author successfully deleted
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Authentication credentials are missing or invalid
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X DELETE http://localhost:8080/authors/1 \
+  -u username:password
+```
+
+## Example Response
+
+No content is returned. The HTTP status code 204 indicates successful deletion.

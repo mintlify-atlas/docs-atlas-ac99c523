@@ -1,0 +1,127 @@
+---
+title: "Get Rental"
+api: "GET /rentals/{rental_id}"
+description: "Retrieve details of a specific rental by its ID."
+---
+
+## Authentication
+
+This endpoint requires HTTP Basic Authentication.
+
+## Path Parameters
+
+<ParamField path="rental_id" type="integer" required>
+  The unique identifier of the rental
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the rental
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  User who rented the book
+  <ResponseField name="id" type="integer">
+    User ID
+  </ResponseField>
+  <ResponseField name="firstname" type="string">
+    User's first name
+  </ResponseField>
+  <ResponseField name="lastname" type="string">
+    User's last name
+  </ResponseField>
+  <ResponseField name="email" type="string">
+    User's email address
+  </ResponseField>
+  <ResponseField name="displayPicture" type="string" optional>
+    URL to user's display picture
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="book" type="object">
+  Book being rented
+  <ResponseField name="isbn" type="string">
+    Book ISBN
+  </ResponseField>
+  <ResponseField name="title" type="string">
+    Book title
+  </ResponseField>
+  <ResponseField name="stock" type="integer">
+    Current stock count
+  </ResponseField>
+  <ResponseField name="coverImage" type="string" optional>
+    URL to book cover image
+  </ResponseField>
+  <ResponseField name="author" type="object">
+    Book author details
+    <ResponseField name="id" type="integer">
+      Author ID
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Author name
+    </ResponseField>
+    <ResponseField name="age" type="integer">
+      Author age
+    </ResponseField>
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="loanDate" type="string">
+  ISO 8601 timestamp when the book was rented
+</ResponseField>
+
+<ResponseField name="returnDate" type="string">
+  ISO 8601 timestamp when the book is due (2 weeks from loan date)
+</ResponseField>
+
+<ResponseField name="returned" type="boolean">
+  Whether the book has been returned
+</ResponseField>
+
+## Error Responses
+
+<ResponseField name="404" type="error">
+  Rental with the specified ID not found
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://api.example.com/rentals/123 \
+  -u "username:password" \
+  -H "Content-Type: application/json"
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json Response
+{
+  "id": 123,
+  "user": {
+    "id": 42,
+    "firstname": "John",
+    "lastname": "Doe",
+    "email": "john.doe@example.com",
+    "displayPicture": "https://example.com/photos/john.jpg"
+  },
+  "book": {
+    "isbn": "978-0-12345-678-9",
+    "title": "The Great Adventure",
+    "stock": 4,
+    "coverImage": "https://example.com/covers/great-adventure.jpg",
+    "author": {
+      "id": 7,
+      "name": "Jane Smith",
+      "age": 45
+    }
+  },
+  "loanDate": "2026-03-04T10:30:00Z",
+  "returnDate": "2026-03-18T10:30:00Z",
+  "returned": false
+}
+```
+
+</ResponseExample>
