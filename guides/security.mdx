@@ -414,7 +414,11 @@ fetch('http://localhost:8080/api/books', {
 
 ## CSRF Protection
 
-For stateless REST APIs, CSRF protection is typically disabled:
+<Note>
+  The current implementation does not explicitly disable CSRF protection. For stateless REST APIs, you may want to disable it.
+</Note>
+
+For stateless REST APIs, CSRF protection can be disabled by adding this configuration:
 
 ```java SecurityConfig.java
 @Bean
@@ -436,7 +440,11 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
 
 ## CORS Configuration
 
-If your API is accessed from web browsers, configure CORS:
+<Note>
+  CORS is not configured in the current implementation. If your API needs to be accessed from web browsers on different domains, add this configuration.
+</Note>
+
+To enable CORS for browser-based clients:
 
 ```java CorsConfig.java
 @Configuration
@@ -444,9 +452,9 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
+        registry.addMapping("/**")
             .allowedOrigins("http://localhost:3000", "https://yourdomain.com")
-            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
             .allowedHeaders("*")
             .allowCredentials(true)
             .maxAge(3600);
