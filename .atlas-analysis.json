@@ -1,0 +1,124 @@
+{
+  "projectType": "api-service",
+  "projectName": "Library API",
+  "projectDescription": "A REST API for managing library operations including books, authors, users, and rentals built with Spring Boot",
+  "theme": "sequoia",
+  "primaryColor": "#8B4513",
+  "lightColor": "#D4A574",
+  "darkColor": "#5C2E0A",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/authentication",
+              "concepts/data-models",
+              "concepts/error-handling"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/setup",
+              "guides/database-configuration",
+              "guides/security"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth/register",
+              "api/auth/login"
+            ]
+          },
+          {
+            "group": "Authors",
+            "pages": [
+              "api/authors/create",
+              "api/authors/list",
+              "api/authors/get",
+              "api/authors/update",
+              "api/authors/delete"
+            ]
+          },
+          {
+            "group": "Books",
+            "pages": [
+              "api/books/create-update",
+              "api/books/list",
+              "api/books/get",
+              "api/books/partial-update",
+              "api/books/delete"
+            ]
+          },
+          {
+            "group": "Users",
+            "pages": [
+              "api/users/create",
+              "api/users/list",
+              "api/users/get",
+              "api/users/update",
+              "api/users/delete"
+            ]
+          },
+          {
+            "group": "Rentals",
+            "pages": [
+              "api/rentals/create",
+              "api/rentals/list",
+              "api/rentals/get",
+              "api/rentals/return"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "User authentication with BCrypt encryption",
+    "Complete CRUD operations for books, authors, and users",
+    "Book rental system with automatic stock management",
+    "Paginated API responses",
+    "RESTful API design with proper HTTP status codes"
+  ],
+  "publicApiSurface": [
+    "POST /auth/register",
+    "POST /auth/login",
+    "GET /authors",
+    "POST /authors",
+    "GET /authors/{id}",
+    "PUT /authors/{id}",
+    "PATCH /authors/{id}",
+    "DELETE /authors/{id}",
+    "GET /books",
+    "PUT /books/{isbn}",
+    "GET /books/{isbn}",
+    "PATCH /books/{isbn}",
+    "DELETE /books/{isbn}",
+    "GET /users",
+    "POST /users",
+    "GET /users/{id}",
+    "PUT /users/{id}",
+    "PATCH /users/{id}",
+    "DELETE /users/{id}",
+    "GET /rentals",
+    "GET /rentals/{rental_id}",
+    "POST /books/{isbn}/user/{user_id}",
+    "PUT /rentals/{rental_id}/return"
+  ]
+}
